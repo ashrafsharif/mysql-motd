@@ -11,8 +11,8 @@ UPTIME=$(uptime -p)
 MYSQL_COMMAND='mysql --connect-timeout=3 -A -Bse'
 MYSQL_READONLY=$(${MYSQL_COMMAND} 'SHOW GLOBAL VARIABLES LIKE "read_only"' | awk {'print $2'})
 TIER='Production'
-PREFER_ROLE='Slave'
 #PREFER_ROLE='Slave'
+PREFER_ROLE='Master'
 MAIN_IP=$(hostname -I)
 CHECK_MYSQL_REPLICATION=$(${MYSQL_COMMAND} 'SHOW SLAVE STATUS\G' | egrep 'Slave_.*_Running: Yes$')
 MYSQL_MASTER=$(${MYSQL_COMMAND} 'SHOW SLAVE STATUS\G' | grep Master_Host | awk {'print $2'})
@@ -55,11 +55,11 @@ if [ $MYSQL_READONLY == 'ON' ]; then
 			fi
                 else
                         REPLICATION_STATUS="${red}Lagging ${lag}s"
-			[ $CRON -eq 1 ] && send_alert 101 "Replication is lagging: $lag s"
+			[ $CRON -eq 1 ] && send_alert 101 "[$HOSTNAME] Replication is lagging: $lag s."
                 fi
         else
                 REPLICATION_STATUS=${red}Unhealthy
-		[ $CRON -eq 1 ] && send_alert 102 "Replication is broken."
+		[ $CRON -eq 1 ] && send_alert 102 "[$HOSTNAME] Replication is broken."
         fi
 
 elif [ $MYSQL_READONLY == 'OFF' ]; then
@@ -70,7 +70,7 @@ elif [ $MYSQL_READONLY == 'OFF' ]; then
 	fi
 else
         MYSQL_SHOW=0
-	[ $CRON -eq 1 ] && send_alert 100 "It looks like MySQL is down"
+	[ $CRON -eq 1 ] && send_alert 100 "[$HOSTNAME] It looks like MySQL is down."
 fi
 
 if [ $TIER == 'Production' ]; then
