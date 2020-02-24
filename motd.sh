@@ -49,6 +49,7 @@ if [ $MYSQL_READONLY == 'ON' ]; then
                 if [ $lag -eq 0 ]; then
                         REPLICATION_STATUS="${green}Healthy  "
 			if [ $CRON -eq 1 ]; then
+				[ -e $alert_dir/100 ] && rm -Rf $alert_dir/100 && send_alert 000
 				[ -e $alert_dir/101 ] && rm -Rf $alert_dir/101 && send_alert 000
 				[ -e $alert_dir/102 ] && rm -Rf $alert_dir/102 && send_alert 000
 			fi
@@ -64,8 +65,12 @@ if [ $MYSQL_READONLY == 'ON' ]; then
 elif [ $MYSQL_READONLY == 'OFF' ]; then
         CURRENT_MYSQL_ROLE='Master'
         SLAVE_HOSTS=$(${MYSQL_COMMAND} 'SHOW SLAVE HOSTS' | awk {'print $2'})
+	if [ $CRON -eq 1 ]; then
+		[ -e $alert_dir/100 ] && rm -Rf $alert_dir/100 && send_alert 000
+	fi
 else
         MYSQL_SHOW=0
+	[ $CRON -eq 1 ] && send_alert 100 "It looks like MySQL is down"
 fi
 
 if [ $TIER == 'Production' ]; then
