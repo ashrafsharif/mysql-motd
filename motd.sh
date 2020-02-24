@@ -1,5 +1,6 @@
 #!/bin/bash
-## Generate important status into motd
+## Generate important MySQL status into motd
+## Also works as as cron, with -cron (require https://github.com/fabianonline/telegram.sh)
 
 CRON=0
 if [ ! -z $1 ]; then
@@ -8,15 +9,16 @@ fi
 HOSTNAME=$(hostname)
 UPTIME=$(uptime -p)
 MYSQL_COMMAND='mysql --connect-timeout=3 -A -Bse'
-MYSQL_READONLY=$(${MYSQL_COMMAND} 'show global variables like "read_only"' | awk {'print $2'})
+MYSQL_READONLY=$(${MYSQL_COMMAND} 'SHOW GLOBAL VARIABLES LIKE "read_only"' | awk {'print $2'})
 TIER='Production'
 PREFER_ROLE='Slave'
 #PREFER_ROLE='Slave'
 MAIN_IP=$(hostname -I)
-CHECK_MYSQL_REPLICATION=$(${MYSQL_COMMAND} 'show slave status\G' | egrep 'Slave_.*_Running: Yes$')
-MYSQL_MASTER=$(${MYSQL_COMMAND} 'show slave status\G' | grep Master_Host | awk {'print $2'})
-MYSQL_UPTIME=$(${MYSQL_COMMAND} 'select TIME_FORMAT(SEC_TO_TIME(VARIABLE_VALUE ),"%Hh %im")  as Uptime from information_schema.GLOBAL_STATUS where VARIABLE_NAME="Uptime"')
+CHECK_MYSQL_REPLICATION=$(${MYSQL_COMMAND} 'SHOW SLAVE STATUS\G' | egrep 'Slave_.*_Running: Yes$')
+MYSQL_MASTER=$(${MYSQL_COMMAND} 'SHOW SLAVE STATUS\G' | grep Master_Host | awk {'print $2'})
+MYSQL_UPTIME=$(${MYSQL_COMMAND} 'SELECT TIME_FORMAT(SEC_TO_TIME(VARIABLE_VALUE ),"%Hh %im")  AS Uptime FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME="Uptime"')
 alert_dir=/usr/local/src
+TELEGRAM=$(which telegram)
 
 bold=$(tput bold)
 red=$(tput setaf 1)
@@ -30,11 +32,11 @@ function send_alert()
 	local alert_path=$alert_dir/$alert_id
 
 	if [ $alert_id -eq 000 ]; then
-		telegram "Alarm cleared"
+		$TELEGRAM "Alarm cleared"
 	else
 		if [ ! -e $alert_path ]; then
 			touch $alert_path
-	                telegram "${notification}"
+	                $TELEGRAM "${notification}"
 		fi
 	fi
 }
@@ -42,8 +44,8 @@ function send_alert()
 MYSQL_SHOW=1
 if [ $MYSQL_READONLY == 'ON' ]; then
         CURRENT_MYSQL_ROLE='Slave'
-        if ${MYSQL_COMMAND} 'show slave status\G' | egrep 'Slave_.*_Running: Yes$' &>/dev/null ; then
-                lag=$(${MYSQL_COMMAND} 'show slave status\G' | egrep 'Seconds_Behind_Master:' | awk {'print $2'})
+        if ${MYSQL_COMMAND} 'SHOW SLAVE STATUS\G' | egrep 'Slave_.*_Running: Yes$' &>/dev/null ; then
+                lag=$(${MYSQL_COMMAND} 'SHOW SLAVE STATUS\G' | egrep 'Seconds_Behind_Master:' | awk {'print $2'})
                 if [ $lag -eq 0 ]; then
                         REPLICATION_STATUS="${green}Healthy  "
 			if [ $CRON -eq 1 ]; then
@@ -61,7 +63,7 @@ if [ $MYSQL_READONLY == 'ON' ]; then
 
 elif [ $MYSQL_READONLY == 'OFF' ]; then
         CURRENT_MYSQL_ROLE='Master'
-        SLAVE_HOSTS=$(${MYSQL_COMMAND} 'show slave hosts' | awk {'print $2'})
+        SLAVE_HOSTS=$(${MYSQL_COMMAND} 'SHOW SLAVE HOSTS' | awk {'print $2'})
 else
         MYSQL_SHOW=0
 fi
