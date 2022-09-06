@@ -12,21 +12,26 @@ HOSTNAME=$(hostname)
 UPTIME=$(uptime -p)
 MYSQL_COMMAND='mysql --connect-timeout=2 -A -Bse'
 MYSQL_READONLY=$(${MYSQL_COMMAND} 'SHOW GLOBAL VARIABLES LIKE "read_only"' | awk {'print $2'})
+# MySQL >8.0 only
+#MYSQL_SUPER_READONLY=$(${MYSQL_COMMAND} 'SHOW GLOBAL VARIABLES LIKE "super_read_only"' | awk {'print $2'})
 TIER='Production'
 PREFER_ROLE='Slave'
 #PREFER_ROLE='Master'
 MAIN_IP=$(hostname -I)
 CHECK_MYSQL_REPLICATION=$(${MYSQL_COMMAND} 'SHOW SLAVE STATUS\G' | egrep 'Slave_.*_Running: Yes$')
 MYSQL_MASTER=$(${MYSQL_COMMAND} 'SHOW SLAVE STATUS\G' | grep Master_Host | awk {'print $2'})
-MYSQL_UPTIME=$(${MYSQL_COMMAND} 'SELECT TIME_FORMAT(SEC_TO_TIME(VARIABLE_VALUE ),"%Hh %im")  AS Uptime FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME="Uptime"')
+MYSQL_UPTIME=$(${MYSQL_COMMAND} 'SELECT TIME_FORMAT(SEC_TO_TIME(VARIABLE_VALUE ),"%Hh %im") AS Uptime FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME="Uptime"')
+# MySQL >8.0 only
+#MYSQL_UPTIME=$(${MYSQL_COMMAND} 'SELECT TIME_FORMAT(SEC_TO_TIME(VARIABLE_VALUE ),"%Hh %im") AS Uptime FROM performance_schema.global_status WHERE VARIABLE_NAME="Uptime"')
 ALERT_DIR=/usr/local/src
+# install telegram https://github.com/fabianonline/telegram.sh
 TELEGRAM=$(which telegram)
 LAG_NOTIFY=5
 
-bold=$(tput bold)
-red=$(tput setaf 1)
-green=$(tput setaf 2)
-normal=$(tput sgr0)
+bold=$([[ -n "$TERM" ]] && tput bold)
+red=$([[ -n "$TERM" ]] && tput setaf 1)
+green=$([[ -n "$TERM" ]] && tput setaf 2)
+normal=$([[ -n "$TERM" ]] && tput sgr0)
 
 function send_alert()
 {
@@ -36,7 +41,7 @@ function send_alert()
 
 	# only trigger alert once. alert_id 000 means clear the alarm
 	if [ $alert_id -eq 000 ]; then
-		$TELEGRAM "Alarm cleared"
+		$TELEGRAM "[$HOSTNAME] Alarm cleared"
 	else
 		if [ ! -e $alert_path ]; then
 			touch $alert_path
