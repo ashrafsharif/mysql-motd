@@ -109,6 +109,8 @@ if [ $MYSQL_SHOW -eq 1 ]; then
 echo "MYSQL STATE"
 echo "==========="
 echo -e "  Current role      : ${bold}$MYSQL_ROLE${normal} \t\t Read-only      : ${bold}$MYSQL_READONLY${normal}"
+# MySQL 8.0 with super-read-only monitoring
+#echo -e "  Current role      : ${bold}$MYSQL_ROLE${normal} \t\t Read-only      : ${bold}$MYSQL_READONLY (standard) | $MYSQL_SUPER_READONLY (super)${normal}"
 echo -e "  Preferred role    : ${bold}$PREFER_ROLE${normal} \t\t DB Uptime      : ${bold}$MYSQL_UPTIME${normal}"
 if [ $CURRENT_MYSQL_ROLE == 'Slave' ]; then
 echo -e "  Replication state : ${bold}$REPLICATION_STATUS${normal} \t Current Master : ${bold}$MYSQL_MASTER${normal}"
